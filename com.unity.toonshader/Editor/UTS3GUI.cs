@@ -51,8 +51,8 @@ namespace UnityEditor.Rendering.Toon
         }
         internal static string srpDefaultLightModeName 
         {
-             get
-             {
+            get
+            {
                 const string legacyDefaultLightModeName = "Always";
                 const string srpDefaultLightModeName = "SRPDefaultUnlit";
 
@@ -62,7 +62,7 @@ namespace UnityEditor.Rendering.Toon
                 }
 
                 return srpDefaultLightModeName;
-             }
+            }
         }
 
 
@@ -191,6 +191,8 @@ namespace UnityEditor.Rendering.Toon
         internal const string ShaderPropIs_BakedNormal = "_Is_BakedNormal";
         internal const string ShaderPropIs_BLD = "_Is_BLD";
         internal const string ShaderPropInverse_Z_Axis_BLD = "_Inverse_Z_Axis_BLD";
+        
+        internal const string ShaderPropUseNormalMapObjectSpace = "_Use_NormalMap_Object_Space";
 
 
         internal const string ShaderDefineIS_OUTLINE_CLIPPING_NO = "_IS_OUTLINE_CLIPPING_NO";
@@ -378,6 +380,7 @@ namespace UnityEditor.Rendering.Toon
         protected MaterialProperty secondShadeMap = null;
         protected MaterialProperty secondShadeColor = null;
         protected MaterialProperty normalMap = null;
+        protected MaterialProperty normalMapOS = null;
         protected MaterialProperty bumpScale = null;
         protected MaterialProperty set_1st_ShadePosition = null;
         protected MaterialProperty set_2nd_ShadePosition = null;
@@ -472,6 +475,7 @@ namespace UnityEditor.Rendering.Toon
             secondShadeMap = FindProperty("_2nd_ShadeMap", props);
             secondShadeColor = FindProperty("_2nd_ShadeColor", props);
             normalMap = FindProperty("_NormalMap", props);
+            normalMapOS = FindProperty("_NormalMapOS", props);
             bumpScale = FindProperty("_BumpScale", props);
             set_1st_ShadePosition = FindProperty(ShaderProp_Set_1st_ShadePosition, props, false);
             set_2nd_ShadePosition = FindProperty(ShaderProp_Set_2nd_ShadePosition, props, false);
@@ -604,6 +608,7 @@ namespace UnityEditor.Rendering.Toon
             public static readonly GUIContent firstShadeColorText = new GUIContent("1st Shading Map", "The map used for the brighter portions of the shadow.");
             public static readonly GUIContent secondShadeColorText = new GUIContent("2nd Shading Map", "The map used for the darker portions of the shadow.");
             public static readonly GUIContent normalMapText = new GUIContent("Normal Map", "A texture that dictates the bumpiness of the material.");
+            public static readonly GUIContent normalMapOSText = new GUIContent("NormalMap Object Space", "NormalMapObjectSpace : Texture");
             public static readonly GUIContent highColorText = new GUIContent("Highlight", "Highlight : Texture(sRGB) × Color(RGB) Default:White");
             public static readonly GUIContent highColorMaskText = new GUIContent("Highlight Mask", "A grayscale texture which utilises its brightness to control intensity.");
             public static readonly GUIContent rimLightMaskText = new GUIContent("Rim Light Mask", "Rim Light Mask : Texture(linear). The white part of the texture is displayed as Rim Light, and the black part is masked and not displayed.");
@@ -961,12 +966,12 @@ namespace UnityEditor.Rendering.Toon
                     }
                 }
                 using (var header = new UTS3MaterialHeaderScope(
-                    item.headerTitle,
-                    item.expandable,
-                    materialEditor,
-                    defaultExpandedState: m_MaterialScopeList.m_DefaultExpandedState,
-                    documentationURL: item.url))
-        // never called from the system??
+                           item.headerTitle,
+                           item.expandable,
+                           materialEditor,
+                           defaultExpandedState: m_MaterialScopeList.m_DefaultExpandedState,
+                           documentationURL: item.url))
+                    // never called from the system??
                 {
                     if (!header.expanded)
                         continue;
@@ -999,14 +1004,14 @@ namespace UnityEditor.Rendering.Toon
                     UTS_ClippingMode mode0 = (UTS_ClippingMode)MaterialGetInt(material, ShaderPropClippingMode);
                     EditorGUI.indentLevel++;
                     EditorGUI.BeginDisabledGroup(mode0 == UTS_ClippingMode.Off);
-                    {
-                        GUI_SetClippingMask(material);
-                    }
+                {
+                    GUI_SetClippingMask(material);
+                }
                     EditorGUI.EndDisabledGroup();
                     EditorGUI.BeginDisabledGroup(mode0 != UTS_ClippingMode.TransClippingMode);
-                    {
-                        GUI_SetTransparencySetting(material);
-                    }
+                {
+                    GUI_SetTransparencySetting(material);
+                }
                     EditorGUI.EndDisabledGroup();
                     EditorGUI.indentLevel--;
                     break;
@@ -1016,10 +1021,10 @@ namespace UnityEditor.Rendering.Toon
                     UTS_TransClippingMode mode1 = (UTS_TransClippingMode)MaterialGetInt(material, ShaderPropClippingMode);
                     EditorGUI.indentLevel++;
                     EditorGUI.BeginDisabledGroup(mode1 != UTS_TransClippingMode.On);
-                    {
-                        GUI_SetClippingMask(material);
-                        GUI_SetTransparencySetting(material);
-                    }
+                {
+                    GUI_SetClippingMask(material);
+                    GUI_SetTransparencySetting(material);
+                }
                     EditorGUI.EndDisabledGroup();
                     EditorGUI.indentLevel--;
                     break;
@@ -1559,6 +1564,7 @@ namespace UnityEditor.Rendering.Toon
 
             m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, normalMap, bumpScale);
             m_MaterialEditor.TextureScaleOffsetProperty(normalMap);
+            
 
             EditorGUILayout.LabelField("Normal Map Effectiveness", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
@@ -1567,6 +1573,16 @@ namespace UnityEditor.Rendering.Toon
             GUI_Toggle(material, Styles.highLightToNormalmapText, ShaderPropNormalMapToHighColor, MaterialGetInt(material, ShaderPropNormalMapToHighColor) != 0);
             GUI_Toggle(material, Styles.rimlightToNormalmapText, ShaderPropIsNormalMapToRimLight, MaterialGetInt(material, ShaderPropIsNormalMapToRimLight) != 0);
 
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
+            
+            EditorGUILayout.LabelField("Object Space Normal Map", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            
+            m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapOSText, normalMapOS, bumpScale);
+            m_MaterialEditor.TextureScaleOffsetProperty(normalMapOS);
+            GUI_Toggle(material, Styles.normalMapOSText, ShaderPropUseNormalMapObjectSpace, MaterialGetInt(material, ShaderPropUseNormalMapObjectSpace) != 0);
+            
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
 
@@ -1589,11 +1605,11 @@ namespace UnityEditor.Rendering.Toon
                     m_MaterialEditor.RegisterPropertyChangeUndo(Styles.specularModeText.text);
                     switch ((UTS_SpeculerMode)mode)
                     {
-                    case UTS_SpeculerMode.Hard:
-                        break;
-                    case UTS_SpeculerMode.Soft:
-                        specularBlendMode.floatValue = 1.0f;
-                        break;
+                        case UTS_SpeculerMode.Hard:
+                            break;
+                        case UTS_SpeculerMode.Soft:
+                            specularBlendMode.floatValue = 1.0f;
+                            break;
                     }
 
 
@@ -1821,7 +1837,7 @@ namespace UnityEditor.Rendering.Toon
 
             if (m_autoRenderQueue == 1)
             {
-                 material.renderQueue = -1; //  (int)UnityEngine.Rendering.RenderQueue.Geometry;
+                material.renderQueue = -1; //  (int)UnityEngine.Rendering.RenderQueue.Geometry;
             }
 
             const string OPAQUE = "Opaque";
@@ -1844,34 +1860,34 @@ namespace UnityEditor.Rendering.Toon
                 switch (technique)
                 {
                     case UTS_Mode.ThreeColorToon:
+                    {
+                        UTS_ClippingMode clippingMode = (UTS_ClippingMode)MaterialGetInt(material,ShaderPropClippingMode);
+                        if (clippingMode == UTS_ClippingMode.Off)
                         {
-                            UTS_ClippingMode clippingMode = (UTS_ClippingMode)MaterialGetInt(material,ShaderPropClippingMode);
-                            if (clippingMode == UTS_ClippingMode.Off)
-                            {
 
-                            }
-                            else
-                            {
-                                renderType = TRANSPARENTCUTOUT;
-
-                            }
-
-                            break;
                         }
+                        else
+                        {
+                            renderType = TRANSPARENTCUTOUT;
+
+                        }
+
+                        break;
+                    }
                     case UTS_Mode.ShadingGradeMap:
+                    {
+                        UTS_TransClippingMode transClippingMode = (UTS_TransClippingMode)MaterialGetInt(material,ShaderPropClippingMode);
+                        if (transClippingMode == UTS_TransClippingMode.Off)
                         {
-                            UTS_TransClippingMode transClippingMode = (UTS_TransClippingMode)MaterialGetInt(material,ShaderPropClippingMode);
-                            if (transClippingMode == UTS_TransClippingMode.Off)
-                            {
-                            }
-                            else
-                            {
-                                renderType = TRANSPARENTCUTOUT;
-
-                            }
-
-                            break;
                         }
+                        else
+                        {
+                            renderType = TRANSPARENTCUTOUT;
+
+                        }
+
+                        break;
+                    }
                 }
 
             }
@@ -1959,7 +1975,7 @@ namespace UnityEditor.Rendering.Toon
                     MaterialSetInt(material, ShaderPropStencilOpFail, (int)StencilOperation.Keep);
                     break;
                 case UTS_StencilMode.StencilMask:
-                     MaterialSetInt(material, ShaderPropStencilComp, (int)StencilCompFunction.Always);
+                    MaterialSetInt(material, ShaderPropStencilComp, (int)StencilCompFunction.Always);
                     MaterialSetInt(material, ShaderPropStencilOpPass, (int)StencilOperation.Replace);
                     MaterialSetInt(material, ShaderPropStencilOpFail, (int)StencilOperation.Replace);
                     break;

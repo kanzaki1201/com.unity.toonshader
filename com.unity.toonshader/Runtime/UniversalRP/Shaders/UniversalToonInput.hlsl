@@ -141,7 +141,7 @@ fixed _Inverse_Clipping;
 float _Tweak_transparency;
 
 float _GI_Intensity;
-fixed  _AngelRing;
+fixed _AngelRing;
 float4 _AngelRing_Sampler_ST;
 float4 _AngelRing_Color;
 fixed _Is_LightColor_AR;
@@ -170,6 +170,11 @@ fixed _Is_BakedNormal;
 
 float _ZOverDrawMode;
 
+//Object Space Override Normal Map
+float4 _NormalMapOS_ST;
+fixed _Use_NormalMap_Object_Space;
+fixed _Show_Vertex_Color_Only;
+
 //
 // 
 //
@@ -192,12 +197,16 @@ CBUFFER_END
 //sampler2D _2nd_ShadeMap;
 //sampler2D _NormalMap;
 
-TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
+TEXTURE2D(_MainTex);
+SAMPLER(sampler_MainTex);
 TEXTURE2D(_1st_ShadeMap);
 TEXTURE2D(_2nd_ShadeMap);
 TEXTURE2D(_NormalMap);
 
-sampler2D _Set_1st_ShadePosition; 
+// Object space override normal map
+TEXTURE2D(_NormalMapOS);
+
+sampler2D _Set_1st_ShadePosition;
 sampler2D _Set_2nd_ShadePosition;
 sampler2D _ShadingGradeMap;
 sampler2D _HighColor_Tex;
@@ -215,10 +224,12 @@ sampler2D _OutlineTex;
 sampler2D _BakedNormal;
 
 
-
-TEXTURE2D(_OcclusionMap);       SAMPLER(sampler_OcclusionMap);
-TEXTURE2D(_MetallicGlossMap);   SAMPLER(sampler_MetallicGlossMap);
-TEXTURE2D(_SpecGlossMap);       SAMPLER(sampler_SpecGlossMap);
+TEXTURE2D(_OcclusionMap);
+SAMPLER(sampler_OcclusionMap);
+TEXTURE2D(_MetallicGlossMap);
+SAMPLER(sampler_MetallicGlossMap);
+TEXTURE2D(_SpecGlossMap);
+SAMPLER(sampler_SpecGlossMap);
 
 
 #ifdef _SPECULAR_SETUP
@@ -231,43 +242,43 @@ half4 SampleMetallicSpecGloss(float2 uv, half albedoAlpha)
 {
     half4 specGloss;
 
-#ifdef _METALLICSPECGLOSSMAP
+    #ifdef _METALLICSPECGLOSSMAP
     specGloss = SAMPLE_METALLICSPECULAR(uv);
-#ifdef _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+    #ifdef _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
     specGloss.a = albedoAlpha * _Smoothness;
-#else
+    #else
     specGloss.a *= _Smoothness;
-#endif
-#else // _METALLICSPECGLOSSMAP
-#if _SPECULAR_SETUP
+    #endif
+    #else // _METALLICSPECGLOSSMAP
+    #if _SPECULAR_SETUP
     specGloss.rgb = _SpecColor.rgb;
-#else
+    #else
     specGloss.rgb = _Metallic.rrr;
-#endif
+    #endif
 
-#ifdef _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+    #ifdef _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
     specGloss.a = albedoAlpha * _Smoothness;
-#else
+    #else
     specGloss.a = _Smoothness;
-#endif
-#endif
+    #endif
+    #endif
 
     return specGloss;
 }
 
 half SampleOcclusion(float2 uv)
 {
-#ifdef _OCCLUSIONMAP
+    #ifdef _OCCLUSIONMAP
     // TODO: Controls things like these by exposing SHADER_QUALITY levels (low, medium, high)
-#if defined(SHADER_API_GLES)
+    #if defined(SHADER_API_GLES)
     return SAMPLE_TEXTURE2D(_OcclusionMap, sampler_OcclusionMap, uv).g;
-#else
+    #else
     half occ = SAMPLE_TEXTURE2D(_OcclusionMap, sampler_OcclusionMap, uv).g;
     return LerpWhiteTo(occ, _OcclusionStrength);
-#endif
-#else
+    #endif
+    #else
     return 1.0;
-#endif
+    #endif
 }
 
 inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfaceData)
@@ -278,13 +289,13 @@ inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfa
     half4 specGloss = SampleMetallicSpecGloss(uv, albedoAlpha.a);
     outSurfaceData.albedo = albedoAlpha.rgb * _BaseColor.rgb;
 
-#if _SPECULAR_SETUP
+    #if _SPECULAR_SETUP
     outSurfaceData.metallic = 1.0h;
     outSurfaceData.specular = specGloss.rgb;
-#else
+    #else
     outSurfaceData.metallic = specGloss.r;
     outSurfaceData.specular = half3(0.0h, 0.0h, 0.0h);
-#endif
+    #endif
 
     outSurfaceData.smoothness = specGloss.a;
     outSurfaceData.normalTS = SampleNormal(uv, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale);

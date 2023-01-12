@@ -8,6 +8,18 @@
         {
 
                 i.normalDir = normalize(i.normalDir);
+            
+                // Object space override normal map
+                if(_Use_NormalMap_Object_Space){
+
+                    half4 normalRGB = SAMPLE_TEXTURE2D(_NormalMapOS, sampler_MainTex, i.uv0);
+                    half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz + half3(0, 0, 1) * 0));
+                    i.normalDir = TransformObjectToWorldNormal(normalOS);
+                }
+
+
+            float2 Set_UV0 = i.uv0;
+            
                 float3x3 tangentTransform = float3x3( i.tangentDir, i.bitangentDir, i.normalDir);
                 float3 viewDirection = normalize(_WorldSpaceCameraPos.xyz - i.posWorld.xyz);
                 float2 Set_UV0 = i.uv0;

@@ -266,7 +266,8 @@ Shader "Toon" {
         ////////////////  _NormalMap("NormalMap", 2D) = "bump" {}     // Tangent space normal map
         _NormalMapOS("NormalMapOS", 2D) = "white" {} // Object space normal map - no good default value
         _NormalScale("_NormalScale", Range(0.0, 8.0)) = 1
-
+        [Toggle(_)] _Use_NormalMap_Object_Space ("Use_NormalMap_Object_Space", Float ) = 0
+        
         _BentNormalMap("_BentNormalMap", 2D) = "bump" {}
         _BentNormalMapOS("_BentNormalMapOS", 2D) = "white" {}
 
@@ -471,6 +472,10 @@ Shader "Toon" {
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////// End of HDRP material default values. ////////////////////
 	//////////////////////////////////////////////////////////////////////////////
+        
+        // Object space override normal map
+        [Toggle(_)] _Use_NormalMap_Object_Space ("Use_NormalMap_Object_Space", Float ) = 0
+        _NormalMapOS ("NormalMapOS", 2D) = "white" {}
     } 
 
     HLSLINCLUDE
