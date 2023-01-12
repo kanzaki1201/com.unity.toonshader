@@ -356,6 +356,7 @@ namespace UnityEditor.Rendering.Toon
         protected  bool _ShadowControlMaps_Foldout = false;
         protected  bool _AdditionalLookdevs_Foldout = false;
         protected  bool _AdvancedOutline_Foldout = false;
+        protected  bool _AdvancedFaceShadow_Foldout = false;
 
 
 
@@ -613,7 +614,9 @@ namespace UnityEditor.Rendering.Toon
             public static readonly GUIContent firstShadeColorText = new GUIContent("1st Shading Map", "The map used for the brighter portions of the shadow.");
             public static readonly GUIContent secondShadeColorText = new GUIContent("2nd Shading Map", "The map used for the darker portions of the shadow.");
             public static readonly GUIContent normalMapText = new GUIContent("Normal Map", "A texture that dictates the bumpiness of the material.");
-            public static readonly GUIContent NormalMap_Object_SpaceText = new GUIContent("NormalMap Object Space", "NormalMapObjectSpace : Texture");
+            public static readonly GUIContent NormalMap_Object_SpaceText = new GUIContent("Override with object space map", "NormalMapObjectSpace : Texture");
+            public static readonly GUIContent advancedFaceShadowText = new GUIContent("Advanced Face Shadow", "Override normal with object space normal map");
+            public static readonly GUIContent NormalMap_Object_Space_UseStepText = new GUIContent("Use color step (WIP)", "");
             public static readonly GUIContent highColorText = new GUIContent("Highlight", "Highlight : Texture(sRGB) × Color(RGB) Default:White");
             public static readonly GUIContent highColorMaskText = new GUIContent("Highlight Mask", "A grayscale texture which utilises its brightness to control intensity.");
             public static readonly GUIContent rimLightMaskText = new GUIContent("Rim Light Mask", "Rim Light Mask : Texture(linear). The white part of the texture is displayed as Rim Light, and the black part is masked and not displayed.");
@@ -1581,18 +1584,29 @@ namespace UnityEditor.Rendering.Toon
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
             
-            EditorGUILayout.LabelField("Object Space Override Normal Map", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
-            
-            m_MaterialEditor.TexturePropertySingleLine(Styles.NormalMap_Object_SpaceText, NormalMap_Object_Space);
-            /*
-            m_MaterialEditor.TextureScaleOffsetProperty(NormalMap_Object_Space);
-            */
-            GUI_Toggle(material, Styles.NormalMap_Object_SpaceText, ShaderPropNormalMapObjectSpaceUse, MaterialGetInt(material, ShaderPropNormalMapObjectSpaceUse) != 0);
-            
-            EditorGUI.indentLevel--;
-            EditorGUILayout.Space();
+            _AdvancedFaceShadow_Foldout = FoldoutSubMenu(_AdvancedFaceShadow_Foldout, Styles.advancedFaceShadowText);
+            if (_AdvancedFaceShadow_Foldout) 
+            {             
+                GUI_Toggle(material, Styles.NormalMap_Object_SpaceText, ShaderPropNormalMapObjectSpaceUse, MaterialGetInt(material, ShaderPropNormalMapObjectSpaceUse) != 0);
+                if (material.GetFloat(ShaderPropNormalMapObjectSpaceUse) == 1)
+                {
+                    m_MaterialEditor.TexturePropertySingleLine(Styles.NormalMap_Object_SpaceText, NormalMap_Object_Space);
+                }
 
+                if (material.GetFloat(ShaderPropNormalMapObjectSpaceUse) == 1)
+                {
+                    GUI_Toggle(material, Styles.NormalMap_Object_Space_UseStepText, ShaderPropNormalMapObjectSpaceUseStep, MaterialGetInt(material, ShaderPropNormalMapObjectSpaceUseStep) != 0);
+                    if (material.GetFloat(ShaderPropNormalMapObjectSpaceUseStep) == 1)
+                    {
+                        EditorGUI.indentLevel++;
+                        m_MaterialEditor.RangeProperty(normalMap_Object_Space_Step, "Color Step");
+                        EditorGUI.indentLevel--;
+                    }
+                }
+                
+                EditorGUI.indentLevel--;
+                EditorGUILayout.Space();
+            }
         }
         void GUI_HighlightSettings(Material material)
         {
