@@ -3,96 +3,116 @@
 //toshiyuki@unity3d.com (Universal RP/HDRP) 
 
 
+float4 fragShadingGradeMap(VertexOutput i, fixed facing : VFACE) : SV_TARGET
+{
+    i.normalDir = normalize(i.normalDir);
 
-        float4 fragShadingGradeMap(VertexOutput i, fixed facing : VFACE) : SV_TARGET
+    // Object space override normal map
+    if (_NormalMap_Object_Space_Use)
+    {
+        half4 normalRGB = 1;
+
+        // Prevent acne by biasing the coloring value
+        if (_NormalMap_Object_Space_Use_Step)
         {
+            int roundBias = _NormalMap_Object_Space_Step;
+            roundBias = max(roundBias, 1);
+            normalRGB = round(SAMPLE_TEXTURE2D(_NormalMap_Object_Space, sampler_MainTex, i.uv0) * roundBias) /
+                roundBias;
+        }
+        else
+        {
+            normalRGB = SAMPLE_TEXTURE2D(_NormalMap_Object_Space, sampler_MainTex, i.uv0);
+        }
 
-                i.normalDir = normalize(i.normalDir);
-            
-                // Object space override normal map
-                if(_Use_NormalMap_Object_Space){
+        // nlerp
+        // half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
 
-                    half4 normalRGB = SAMPLE_TEXTURE2D(_NormalMapOS, sampler_MainTex, i.uv0);
-                    half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz + half3(0, 0, 1) * 0));
-                    i.normalDir = TransformObjectToWorldNormal(normalOS);
-                }
-                float2 Set_UV0 = i.uv0;
-            
-                float3x3 tangentTransform = float3x3( i.tangentDir, i.bitangentDir, i.normalDir);
-                float3 viewDirection = normalize(_WorldSpaceCameraPos.xyz - i.posWorld.xyz);
-                //v.2.0.6
+        // slerp
+        half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
+        half3 theta = acos(dot) * normalRGB.xyz;
+        half3 normalOS = normalize(-1 * cos(theta));
+        i.normalDir = TransformObjectToWorldNormal(normalOS);
+    }
+    float2 Set_UV0 = i.uv0;
 
-
-                float3 _NormalMap_var = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _NormalMap)), _BumpScale);
-
-                float3 normalLocal = _NormalMap_var.rgb;
-                float3 normalDirection = normalize(mul( normalLocal, tangentTransform )); // Perturbed normals
+    float3x3 tangentTransform = float3x3(i.tangentDir, i.bitangentDir, i.normalDir);
+    float3 viewDirection = normalize(_WorldSpaceCameraPos.xyz - i.posWorld.xyz);
+    //v.2.0.6
 
 
-                // todo. not necessary to calc gi factor in  shadowcaster pass.
-                SurfaceData surfaceData;
-                InitializeStandardLitSurfaceDataUTS(i.uv0, surfaceData);
+    float3 _NormalMap_var = UnpackNormalScale(
+        SAMPLE_TEXTURE2D(_NormalMap, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _NormalMap)), _BumpScale);
 
-                InputData inputData;
-                Varyings  input = (Varyings)0;
+    float3 normalLocal = _NormalMap_var.rgb;
+    float3 normalDirection = normalize(mul(normalLocal, tangentTransform)); // Perturbed normals
 
-                // todo.  it has to be cared more.
-                UNITY_SETUP_INSTANCE_ID(input);
-                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-# ifdef LIGHTMAP_ON
 
-# else
-                input.vertexSH = i.vertexSH;
-# endif
-                input.uv = i.uv0;
-#  if defined(_ADDITIONAL_LIGHTS_VERTEX) ||  (VERSION_LOWER(12, 0))  
+    // todo. not necessary to calc gi factor in  shadowcaster pass.
+    SurfaceData surfaceData;
+    InitializeStandardLitSurfaceDataUTS(i.uv0, surfaceData);
+
+    InputData inputData;
+    Varyings input = (Varyings)0;
+
+    // todo.  it has to be cared more.
+    UNITY_SETUP_INSTANCE_ID(input);
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    # ifdef LIGHTMAP_ON
+
+    # else
+    input.vertexSH = i.vertexSH;
+    # endif
+    input.uv = i.uv0;
+    #  if defined(_ADDITIONAL_LIGHTS_VERTEX) ||  (VERSION_LOWER(12, 0))
 
                 input.fogFactorAndVertexLight = i.fogFactorAndVertexLight;
-# else
-                input.fogFactor = i.fogFactor;
-# endif
+    # else
+    input.fogFactor = i.fogFactor;
+    # endif
 
-#  ifdef REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
+    #  ifdef REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
                 input.shadowCoord = i.shadowCoord;
-#  endif
+    #  endif
 
-#  ifdef REQUIRES_WORLD_SPACE_POS_INTERPOLATOR
+    #  ifdef REQUIRES_WORLD_SPACE_POS_INTERPOLATOR
                 input.positionWS = i.posWorld.xyz;
-#  endif
-#  ifdef _NORMALMAP
+    #  endif
+    #  ifdef _NORMALMAP
                 input.normalWS = half4(i.normalDir, viewDirection.x);      // xyz: normal, w: viewDir.x
                 input.tangentWS = half4(i.tangentDir, viewDirection.y);        // xyz: tangent, w: viewDir.y
-#  if (VERSION_LOWER(7, 5))
+    #  if (VERSION_LOWER(7, 5))
                 input.bitangentWS = half4(i.bitangentDir, viewDirection.z);    // xyz: bitangent, w: viewDir.z
-#endif //
-#  else
-                input.normalWS = half3(i.normalDir);
-#    if (VERSION_LOWER(12, 0))
+    #endif //
+    #  else
+    input.normalWS = half3(i.normalDir);
+    #    if (VERSION_LOWER(12, 0))
                 input.viewDirWS = half3(viewDirection);
-#    endif //(VERSION_LOWER(12, 0))
-#  endif
-                InitializeInputData(input, surfaceData.normalTS, inputData);
+    #    endif //(VERSION_LOWER(12, 0))
+    #  endif
+    InitializeInputData(input, surfaceData.normalTS, inputData);
 
-                BRDFData brdfData;
-                InitializeBRDFData(surfaceData.albedo,
-                    surfaceData.metallic,
-                    surfaceData.specular,
-                    surfaceData.smoothness,
-                    surfaceData.alpha, brdfData);
+    BRDFData brdfData;
+    InitializeBRDFData(surfaceData.albedo,
+                       surfaceData.metallic,
+                       surfaceData.specular,
+                       surfaceData.smoothness,
+                       surfaceData.alpha, brdfData);
 
-                half3 envColor = GlobalIlluminationUTS(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.normalWS, inputData.viewDirectionWS);
-                envColor *= 1.8f;
+    half3 envColor = GlobalIlluminationUTS(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.normalWS,
+                                           inputData.viewDirectionWS);
+    envColor *= 1.8f;
 
-                UtsLight mainLight = GetMainUtsLightByID(i.mainLightID, i.posWorld.xyz, inputData.shadowCoord, i.positionCS);
-                half3 mainLightColor = GetLightColor(mainLight);
+    UtsLight mainLight = GetMainUtsLightByID(i.mainLightID, i.posWorld.xyz, inputData.shadowCoord, i.positionCS);
+    half3 mainLightColor = GetLightColor(mainLight);
 
 
-                float4 _MainTex_var = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _MainTex));
+    float4 _MainTex_var = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _MainTex));
 
-//v.2.0.4
-#ifdef _IS_TRANSCLIPPING_OFF
-//
-#elif _IS_TRANSCLIPPING_ON
+    //v.2.0.4
+    #ifdef _IS_TRANSCLIPPING_OFF
+    //
+    #elif _IS_TRANSCLIPPING_ON
 
                 float4 _ClippingMask_var = SAMPLE_TEXTURE2D(_ClippingMask, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _ClippingMask));
                 float Set_MainTexAlpha = _MainTex_var.a;
@@ -100,38 +120,46 @@
                 float _Inverse_Clipping_var = lerp( _IsBaseMapAlphaAsClippingMask_var, (1.0 - _IsBaseMapAlphaAsClippingMask_var), _Inverse_Clipping );
                 float Set_Clipping = saturate((_Inverse_Clipping_var+_Clipping_Level));
                 clip(Set_Clipping - 0.5);
-#endif
+    #endif
 
 
-                float shadowAttenuation = 1.0;
+    float shadowAttenuation = 1.0;
 
-#if defined(_MAIN_LIGHT_SHADOWS) || defined(_MAIN_LIGHT_SHADOWS_CASCADE) || defined(_MAIN_LIGHT_SHADOWS_SCREEN)
+    #if defined(_MAIN_LIGHT_SHADOWS) || defined(_MAIN_LIGHT_SHADOWS_CASCADE) || defined(_MAIN_LIGHT_SHADOWS_SCREEN)
                 shadowAttenuation = mainLight.shadowAttenuation;
-# endif
+    # endif
 
 
-//v.2.0.4
+    //v.2.0.4
 
-                float3 defaultLightDirection = normalize(UNITY_MATRIX_V[2].xyz + UNITY_MATRIX_V[1].xyz);
-                //v.2.0.5
-                float3 defaultLightColor = saturate(max(half3(0.05,0.05,0.05)*_Unlit_Intensity,max(ShadeSH9(half4(0.0, 0.0, 0.0, 1.0)),ShadeSH9(half4(0.0, -1.0, 0.0, 1.0)).rgb)*_Unlit_Intensity));
-                float3 customLightDirection = normalize(mul( unity_ObjectToWorld, float4(((float3(1.0,0.0,0.0)*_Offset_X_Axis_BLD*10)+(float3(0.0,1.0,0.0)*_Offset_Y_Axis_BLD*10)+(float3(0.0,0.0,-1.0)*lerp(-1.0,1.0,_Inverse_Z_Axis_BLD))),0)).xyz);
-                float3 lightDirection = normalize(lerp(defaultLightDirection, mainLight.direction.xyz,any(mainLight.direction.xyz)));
-                lightDirection = lerp(lightDirection, customLightDirection, _Is_BLD);
-                //v.2.0.5: 
+    float3 defaultLightDirection = normalize(UNITY_MATRIX_V[2].xyz + UNITY_MATRIX_V[1].xyz);
+    //v.2.0.5
+    float3 defaultLightColor = saturate(max(half3(0.05, 0.05, 0.05) * _Unlit_Intensity,
+                                            max(ShadeSH9(half4(0.0, 0.0, 0.0, 1.0)),
+                                                ShadeSH9(half4(0.0, -1.0, 0.0, 1.0)).rgb) * _Unlit_Intensity));
+    float3 customLightDirection = normalize(mul(unity_ObjectToWorld,
+                                                float4(
+                                                    ((float3(1.0, 0.0, 0.0) * _Offset_X_Axis_BLD * 10) + (
+                                                        float3(0.0, 1.0, 0.0) * _Offset_Y_Axis_BLD * 10) + (float3(
+                                                        0.0, 0.0, -1.0) * lerp(-1.0, 1.0, _Inverse_Z_Axis_BLD))),
+                                                    0)).xyz);
+    float3 lightDirection = normalize(
+        lerp(defaultLightDirection, mainLight.direction.xyz, any(mainLight.direction.xyz)));
+    lightDirection = lerp(lightDirection, customLightDirection, _Is_BLD);
+    //v.2.0.5: 
 
-                half3 originalLightColor = mainLightColor.rgb;
+    half3 originalLightColor = mainLightColor.rgb;
 
-                float3 lightColor = lerp(max(defaultLightColor, originalLightColor), max(defaultLightColor, saturate(originalLightColor)), _Is_Filter_LightColor);
+    float3 lightColor = lerp(max(defaultLightColor, originalLightColor),
+                             max(defaultLightColor, saturate(originalLightColor)), _Is_Filter_LightColor);
 
 
+    ////// Lighting:
+    float3 halfDirection = normalize(viewDirection + lightDirection);
+    //v.2.0.5
+    _Color = _BaseColor;
 
-////// Lighting:
-                float3 halfDirection = normalize(viewDirection+lightDirection);
-                //v.2.0.5
-                _Color = _BaseColor;
-
-#ifdef _IS_PASS_FWDBASE
+    #ifdef _IS_PASS_FWDBASE
                 float3 Set_LightColor = lightColor.rgb;
                 float3 Set_BaseColor = lerp( (_MainTex_var.rgb*_BaseColor.rgb), ((_MainTex_var.rgb*_BaseColor.rgb)*Set_LightColor), _Is_LightColor_Base );
                 //v.2.0.5
@@ -143,10 +171,10 @@
                 float4 _ShadingGradeMap_var = tex2Dlod(_ShadingGradeMap, float4(TRANSFORM_TEX(Set_UV0, _ShadingGradeMap), 0.0, _BlurLevelSGM));
 
                 //the value of shadowAttenuation is darker than legacy and it cuases noise in terminaters.
-#if !defined (UTS_USE_RAYTRACING_SHADOW)
+    #if !defined (UTS_USE_RAYTRACING_SHADOW)
                 shadowAttenuation *= 2.0f;
                 shadowAttenuation = saturate(shadowAttenuation);
-#endif
+    #endif
 
                 //v.2.0.6
                 //Minmimum value is same as the Minimum Feather's value with the Minimum Step's value as threshold.
@@ -257,10 +285,10 @@
                 float3 matCapColorOnMultiplyMode = Set_HighColor*(1-_Tweak_MatcapMaskLevel_var_MultiplyMode) + Set_HighColor*Set_MatCap*_Tweak_MatcapMaskLevel_var_MultiplyMode + lerp(float3(0,0,0),Set_RimLight,_RimLight);
                 float3 matCapColorFinal = lerp(matCapColorOnMultiplyMode, matCapColorOnAddMode, _Is_BlendAddToMatCap);
 //v.2.0.4
-#ifdef _IS_ANGELRING_OFF
+    #ifdef _IS_ANGELRING_OFF
                 float3 finalColor = lerp(_RimLight_var, matCapColorFinal, _MatCap);// Final Composition before Emissive
                 //
-#elif _IS_ANGELRING_ON
+    #elif _IS_ANGELRING_ON
                 float3 finalColor = lerp(_RimLight_var, matCapColorFinal, _MatCap);// Final Composition before AR
                 //v.2.0.7 AR Camera Rolling Stabilizer
                 float3 _AR_OffsetU_var = lerp(mul(UNITY_MATRIX_V, float4(i.normalDir,0)).xyz,float3(0,0,1),_AR_OffsetU);
@@ -274,13 +302,13 @@
                 float3 Set_AngelRingWithAlpha = (_Is_LightColor_AR_var*_AngelRing_Sampler_var.a);
                 //Composition: MatCap and AngelRing as finalColor
                 finalColor = lerp(finalColor, lerp((finalColor + Set_AngelRing), ((finalColor*(1.0 - Set_ARtexAlpha))+Set_AngelRingWithAlpha), _ARSampler_AlphaOn ), _AngelRing );// Final Composition before Emissive
-#endif
-//v.2.0.7
-#ifdef _EMISSIVE_SIMPLE
+    #endif
+    //v.2.0.7
+    #ifdef _EMISSIVE_SIMPLE
                 float4 _Emissive_Tex_var = tex2D(_Emissive_Tex,TRANSFORM_TEX(Set_UV0, _Emissive_Tex));
                 float emissiveMask = _Emissive_Tex_var.a;
                 emissive = _Emissive_Tex_var.rgb * _Emissive_Color.rgb * emissiveMask;
-#elif _EMISSIVE_ANIMATION
+    #elif _EMISSIVE_ANIMATION
                 //v.2.0.7 Calculation View Coord UV for Scroll 
                 float3 viewNormal_Emissive = (mul(UNITY_MATRIX_V, float4(i.normalDir,0))).xyz;
                 float3 NormalBlend_Emissive_Detail = viewNormal_Emissive * float3(-1,-1,1);
@@ -311,7 +339,7 @@
                 float4 viewShift_Color = lerp(_ViewShift, colorShift_Color, viewShift_var);
                 float4 emissive_Color = lerp(colorShift_Color, viewShift_Color, _Is_ViewShift);
                 emissive = emissive_Color.rgb * _Emissive_Tex_var.rgb * emissiveMask;
-#endif
+    #endif
 //
                 //v.2.0.6: GI_Intensity with Intensity Multiplier Filter
 
@@ -322,12 +350,12 @@
 
 
                 float3 pointLightColor = 0;
-  #ifdef _ADDITIONAL_LIGHTS
+    #ifdef _ADDITIONAL_LIGHTS
 
                 int pixelLightCount = GetAdditionalLightsCount();
 
   // determine main light inorder to apply light culling properly
-  
+
                 // when the loop counter start from negative value, MAINLIGHT_IS_MAINLIGHT = -1, some compiler doesn't work well.
                 // for (int iLight = MAINLIGHT_IS_MAINLIGHT; iLight < pixelLightCount ; ++iLight)
                 for (int loopCounter = 0; loopCounter < pixelLightCount - MAINLIGHT_IS_MAINLIGHT; ++loopCounter)
@@ -442,7 +470,7 @@
                     }
                 }
 
-  #endif // _ADDITIONAL_LIGHTS
+    #endif // _ADDITIONAL_LIGHTS
 
                 //
                 //Final Composition
@@ -454,25 +482,21 @@
 
 
 
-#endif
+    #endif
 
 
-//v.2.0.4
-#ifdef _IS_TRANSCLIPPING_OFF
+    //v.2.0.4
+    #ifdef _IS_TRANSCLIPPING_OFF
 
                 fixed4 finalRGBA = fixed4(finalColor,1);
 
-#elif _IS_TRANSCLIPPING_ON
+    #elif _IS_TRANSCLIPPING_ON
                 float Set_Opacity = SATURATE_IF_SDR((_Inverse_Clipping_var+_Tweak_transparency));
 
                 fixed4 finalRGBA = fixed4(finalColor,Set_Opacity);
 
-#endif
+    #endif
 
 
-                return finalRGBA;
-
-
-        }
-
-
+    return finalRGBA;
+}
