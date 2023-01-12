@@ -475,6 +475,7 @@ namespace UnityEditor.Rendering.Toon
             secondShadeMap = FindProperty("_2nd_ShadeMap", props);
             secondShadeColor = FindProperty("_2nd_ShadeColor", props);
             normalMap = FindProperty("_NormalMap", props);
+            // Object space override normal map
             normalMapOS = FindProperty("_NormalMapOS", props);
             bumpScale = FindProperty("_BumpScale", props);
             set_1st_ShadePosition = FindProperty(ShaderProp_Set_1st_ShadePosition, props, false);
@@ -1576,7 +1577,7 @@ namespace UnityEditor.Rendering.Toon
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
             
-            EditorGUILayout.LabelField("Object Space Normal Map", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Object Space Override Normal Map", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
             
             m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapOSText, normalMapOS, bumpScale);
