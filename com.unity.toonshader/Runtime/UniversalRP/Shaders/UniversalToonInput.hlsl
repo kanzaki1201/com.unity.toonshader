@@ -171,9 +171,10 @@ fixed _Is_BakedNormal;
 float _ZOverDrawMode;
 
 //Object Space Override Normal Map
-float4 _NormalMapOS_ST;
-fixed _Use_NormalMap_Object_Space;
-fixed _Show_Vertex_Color_Only;
+float4 _NormalMap_Object_Space_ST;
+fixed _NormalMap_Object_Space_Use;
+fixed _NormalMap_Object_Space_Use_Step;
+float _NormalMap_Object_Space_Step;
 
 //
 // 
@@ -204,7 +205,7 @@ TEXTURE2D(_2nd_ShadeMap);
 TEXTURE2D(_NormalMap);
 
 // Object space override normal map
-TEXTURE2D(_NormalMapOS);
+TEXTURE2D(_NormalMap_Object_Space);
 
 sampler2D _Set_1st_ShadePosition;
 sampler2D _Set_2nd_ShadePosition;

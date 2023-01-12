@@ -267,7 +267,10 @@ Shader "Toon" {
         _NormalMapOS("NormalMapOS", 2D) = "white" {} // Object space normal map - no good default value
         _NormalScale("_NormalScale", Range(0.0, 8.0)) = 1
         //Object space override normal map
-        [Toggle(_)] _Use_NormalMap_Object_Space ("Use_NormalMap_Object_Space", Float ) = 0
+        [Toggle(_)] _NormalMap_Object_Space_Use ("NormalMap_Object_Space_Use", Float ) = 0
+        [Toggle(_)] _NormalMap_Object_Space_Use_Step ("NormalMap_Object_Space_Use_Step", Float ) = 0
+        _NormalMap_Object_Space ("NormalMap_Object_Space", 2D) = "white" {}
+        _NormalMap_Object_Space_Step ("NormalMap_Object_Space_Step", Range(100, 1)) = 10
         
         _BentNormalMap("_BentNormalMap", 2D) = "bump" {}
         _BentNormalMapOS("_BentNormalMapOS", 2D) = "white" {}

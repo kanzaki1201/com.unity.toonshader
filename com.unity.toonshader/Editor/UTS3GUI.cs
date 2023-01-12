@@ -192,7 +192,9 @@ namespace UnityEditor.Rendering.Toon
         internal const string ShaderPropIs_BLD = "_Is_BLD";
         internal const string ShaderPropInverse_Z_Axis_BLD = "_Inverse_Z_Axis_BLD";
         
-        internal const string ShaderPropUseNormalMapObjectSpace = "_Use_NormalMap_Object_Space";
+        internal const string ShaderPropNormalMapObjectSpaceUse = "_NormalMap_Object_Space_Use";
+        internal const string ShaderPropNormalMapObjectSpaceUseStep = "_NormalMap_Object_Space_Use_Step";
+        internal const string ShaderPropNormalMapObjectSpaceStep = "_NormalMap_Object_Space_Step";
 
 
         internal const string ShaderDefineIS_OUTLINE_CLIPPING_NO = "_IS_OUTLINE_CLIPPING_NO";
@@ -380,13 +382,14 @@ namespace UnityEditor.Rendering.Toon
         protected MaterialProperty secondShadeMap = null;
         protected MaterialProperty secondShadeColor = null;
         protected MaterialProperty normalMap = null;
-        protected MaterialProperty normalMapOS = null;
         protected MaterialProperty bumpScale = null;
         protected MaterialProperty set_1st_ShadePosition = null;
         protected MaterialProperty set_2nd_ShadePosition = null;
         protected MaterialProperty shadingGradeMap = null;
 
-
+        //Object space override normal map
+        protected MaterialProperty NormalMap_Object_Space = null;
+        protected MaterialProperty normalMap_Object_Space_Step = null;
 
         protected MaterialProperty highColor_Tex = null;
         protected MaterialProperty highColor = null;
@@ -476,7 +479,8 @@ namespace UnityEditor.Rendering.Toon
             secondShadeColor = FindProperty("_2nd_ShadeColor", props);
             normalMap = FindProperty("_NormalMap", props);
             // Object space override normal map
-            normalMapOS = FindProperty("_NormalMapOS", props);
+            NormalMap_Object_Space = FindProperty("_NormalMap_Object_Space", props);
+            normalMap_Object_Space_Step = FindProperty("_NormalMap_Object_Space_Step", props);
             bumpScale = FindProperty("_BumpScale", props);
             set_1st_ShadePosition = FindProperty(ShaderProp_Set_1st_ShadePosition, props, false);
             set_2nd_ShadePosition = FindProperty(ShaderProp_Set_2nd_ShadePosition, props, false);
@@ -609,7 +613,7 @@ namespace UnityEditor.Rendering.Toon
             public static readonly GUIContent firstShadeColorText = new GUIContent("1st Shading Map", "The map used for the brighter portions of the shadow.");
             public static readonly GUIContent secondShadeColorText = new GUIContent("2nd Shading Map", "The map used for the darker portions of the shadow.");
             public static readonly GUIContent normalMapText = new GUIContent("Normal Map", "A texture that dictates the bumpiness of the material.");
-            public static readonly GUIContent normalMapOSText = new GUIContent("NormalMap Object Space", "NormalMapObjectSpace : Texture");
+            public static readonly GUIContent NormalMap_Object_SpaceText = new GUIContent("NormalMap Object Space", "NormalMapObjectSpace : Texture");
             public static readonly GUIContent highColorText = new GUIContent("Highlight", "Highlight : Texture(sRGB) × Color(RGB) Default:White");
             public static readonly GUIContent highColorMaskText = new GUIContent("Highlight Mask", "A grayscale texture which utilises its brightness to control intensity.");
             public static readonly GUIContent rimLightMaskText = new GUIContent("Rim Light Mask", "Rim Light Mask : Texture(linear). The white part of the texture is displayed as Rim Light, and the black part is masked and not displayed.");
@@ -1580,9 +1584,11 @@ namespace UnityEditor.Rendering.Toon
             EditorGUILayout.LabelField("Object Space Override Normal Map", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
             
-            m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapOSText, normalMapOS, bumpScale);
-            m_MaterialEditor.TextureScaleOffsetProperty(normalMapOS);
-            GUI_Toggle(material, Styles.normalMapOSText, ShaderPropUseNormalMapObjectSpace, MaterialGetInt(material, ShaderPropUseNormalMapObjectSpace) != 0);
+            m_MaterialEditor.TexturePropertySingleLine(Styles.NormalMap_Object_SpaceText, NormalMap_Object_Space);
+            /*
+            m_MaterialEditor.TextureScaleOffsetProperty(NormalMap_Object_Space);
+            */
+            GUI_Toggle(material, Styles.NormalMap_Object_SpaceText, ShaderPropNormalMapObjectSpaceUse, MaterialGetInt(material, ShaderPropNormalMapObjectSpaceUse) != 0);
             
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
