@@ -9,27 +9,34 @@ float4 fragDoubleShadeFeather(VertexOutput i, fixed facing : VFACE) : SV_TARGET
     float3 viewDirection = normalize(_WorldSpaceCameraPos.xyz - i.posWorld.xyz);
 
     // Object space override normal map
-    if(_NormalMap_Object_Space_Use){
-        
+    if (_NormalMap_Object_Space_Use)
+    {
         half4 normalRGB = 1;
 
         // Prevent acne by biasing the coloring value
-        if(_NormalMap_Object_Space_Use_Step){
+        if (_NormalMap_Object_Space_Use_Step)
+        {
             int roundBias = _NormalMap_Object_Space_Step;
             roundBias = max(roundBias, 1);
-            normalRGB = round(SAMPLE_TEXTURE2D(_NormalMap_Object_Space, sampler_MainTex, i.uv0) * roundBias) / roundBias;
+            normalRGB = round(SAMPLE_TEXTURE2D(_NormalMap_Object_Space, sampler_MainTex, i.uv0) * roundBias) /
+                roundBias;
         }
-        else{
+        else
+        {
             normalRGB = SAMPLE_TEXTURE2D(_NormalMap_Object_Space, sampler_MainTex, i.uv0);
         }
 
         // nlerp
-        // half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
+        /*
+        half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
+        */
 
         // slerp
         half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
         half3 theta = acos(dot) * normalRGB.xyz;
         half3 normalOS = normalize(-1 * cos(theta));
+        
+        normalOS.z *= -1; //Why?
         i.normalDir = TransformObjectToWorldNormal(normalOS);
     }
     float3x3 tangentTransform = float3x3(i.tangentDir, i.bitangentDir, i.normalDir);
