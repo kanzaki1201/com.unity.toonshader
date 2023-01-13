@@ -1,5 +1,13 @@
 # Unity Toon Shader overview
 
+This is my custom fork of UTS3.
+
+## What's new
+* Object space normal override to achieve anime style face shadow (or other shadow).
+
+## What's different
+* TODO added back apply button in deprecated feature settings
+
 ![](images/TPK_04.png)
 
 
