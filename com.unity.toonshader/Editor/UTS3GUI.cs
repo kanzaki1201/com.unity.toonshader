@@ -1499,11 +1499,7 @@ namespace UnityEditor.Rendering.Toon
             {
                 EditorGUI.indentLevel++;
                 GUI_RangeProperty(material, Styles.tweakSystemShadowLevelText);
-
-                if (UnityToonShaderSettings.instance.m_ShowDepracated)
-                {
-                    GUI_SetRTHS(material);
-                }
+                GUI_SetRTHS(material);
                 EditorGUI.indentLevel--;
                 EditorGUILayout.Space();
             }
