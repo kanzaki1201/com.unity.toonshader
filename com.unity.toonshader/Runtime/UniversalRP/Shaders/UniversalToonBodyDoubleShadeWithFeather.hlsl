@@ -27,17 +27,23 @@ float4 fragDoubleShadeFeather(VertexOutput i, fixed facing : VFACE) : SV_TARGET
         }
 
         // nlerp
-        /*
         half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
-        */
 
         // slerp
-        half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
-        half3 theta = acos(dot) * normalRGB.xyz;
-        half3 normalOS = normalize(-1 * cos(theta));
+        // half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
+        // half3 theta = acos(dot) * normalRGB.xyz;
+        // half3 normalOS = normalize(-1 * cos(theta));
         
-        normalOS.z *= -1; //Why?
+        // normalOS.z *= -1; //Why?
+        // You don't need to flip z if sRGB is diabled in texture settings
+        // And sRGB should be disabled as the normals are stored linearly.
+
         i.normalDir = TransformObjectToWorldNormal(normalOS);
+
+        // Old method (but it worked the best???) --> nlerp without rounding bias
+        // half4 normalRGB = SAMPLE_TEXTURE2D(_NormalMap_Object_Space, sampler_MainTex, i.uv0);
+        // half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz + half3(0, 0, 1) * 0));
+        // i.normalDir = TransformObjectToWorldNormal(normalOS);
     }
     float3x3 tangentTransform = float3x3(i.tangentDir, i.bitangentDir, i.normalDir);
 
