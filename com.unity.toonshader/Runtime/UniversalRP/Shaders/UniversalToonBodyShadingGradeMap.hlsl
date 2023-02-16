@@ -26,14 +26,14 @@ float4 fragShadingGradeMap(VertexOutput i, fixed facing : VFACE) : SV_TARGET
         }
 
         // nlerp
-        // half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
+        half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
 
         // slerp
-        half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
-        half3 theta = acos(dot) * normalRGB.xyz;
-        half3 normalOS = normalize(-1 * cos(theta));
+        // half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
+        // half3 theta = acos(dot) * normalRGB.xyz;
+        // half3 normalOS = normalize(-1 * cos(theta));
 
-        normalOS.z *= -1; //Why?
+        // normalOS.z *= -1; //Why?
         i.normalDir = TransformObjectToWorldNormal(normalOS);
     }
     float2 Set_UV0 = i.uv0;

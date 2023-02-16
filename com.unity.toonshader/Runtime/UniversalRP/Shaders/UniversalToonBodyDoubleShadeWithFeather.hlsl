@@ -30,9 +30,16 @@ float4 fragDoubleShadeFeather(VertexOutput i, fixed facing : VFACE) : SV_TARGET
         half3 normalOS = normalize(lerp(half3(-1, -1, -1), half3(1, 1, 1), normalRGB.xyz));
 
         // slerp
-        // half dot = -1; // clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1);
-        // half3 theta = acos(dot) * normalRGB.xyz;
-        // half3 normalOS = normalize(-1 * cos(theta));
+        // cosTheta is the same as: clamp(dot(half3(-1, -1, -1), half3(1, 1, 1)), -1, 1) 
+        // Since both half3(-1, -1, -1) and half3(1, 1, 1) are not normalized it make sense to clamp to -1 and 1
+        // The dot product is always -3 and hence cosTheta is always -1.
+        // Even if you normalize the two vector first cosTheta is still always -1.
+        // half theta = acos(-1);
+        // normalRGB.x = (sin(normalRGB.x * theta) * cos(theta * (1-normalRGB.x)) - cos(normalRGB.x * theta) * sin(theta * (1-normalRGB.x))) / sin(theta);
+        // normalRGB.y = (sin(normalRGB.y * theta) * cos(theta * (1-normalRGB.y)) - cos(normalRGB.y * theta) * sin(theta * (1-normalRGB.y))) / sin(theta);
+        // normalRGB.z = (sin(normalRGB.z * theta) * cos(theta * (1-normalRGB.z)) - cos(normalRGB.z * theta) * sin(theta * (1-normalRGB.z))) / sin(theta);
+        // normalRGB *= -1; //WHY???
+        // half3 normalOS = normalize(normalRGB);
         
         // normalOS.z *= -1; //Why?
         // You don't need to flip z if sRGB is diabled in texture settings
